@@ -36,6 +36,10 @@ bot.on('spawn', async () => {
     { name: 'pens', dx: 0, dz: 1 },
     { name: 'fishing', dx: -1, dz: 0 },
     { name: 'mine', dx: 0, dz: -1 },
+    { name: 'log_torch', dx: 1, dz: 1 },
+    { name: 'log_torch', dx: -1, dz: 1 },
+    { name: 'log_torch', dx: 1, dz: -1 },
+    { name: 'log_torch', dx: -1, dz: -1 }
   ];
 
   // Get bot's unique id (username for now)
@@ -53,7 +57,7 @@ bot.on('spawn', async () => {
       console.error('DB error:', err);
       return;
     }
-    if (!rows || rows.length < 5) {
+    if (!rows || rows.length < SCHEMATICS.length) {
       // Claim new home base
       const center = getChunkCoords(bot.entity.position);
       bot.chat(`Claiming home base at chunk ${center.x},${center.z}`);

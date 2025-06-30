@@ -1,7 +1,7 @@
 const { Schematic } = require('prismarine-schematic');
 const fs = require('fs').promises;
 const Vec3 = require('vec3');
-const version = '1.16.4';
+const version = '1.21';
 const mcData = require('minecraft-data')(version);
 
 
