@@ -113,91 +113,99 @@ bot.on('spawn', async () => {
       await buildSchematic.fetchMaterialsFromBarrels(bot, row.chunk_x, row.chunk_z, neededBlockTypes);
       await buildSchematic(bot, row.schematic, row.chunk_x, row.chunk_z);
     }
+
+    // === Only start survival logic after home base build is done ===
+    await runSurvivalTasks();
   });
 
-  const mcData = require('minecraft-data')(bot.version)
-  const movements = new Movements(bot, mcData)
-  movements.allowSprinting = true
-  movements.allowParkour = true
-  movements.allow1by1towers = true
-  movements.canDig = true
-  bot.pathfinder.setMovements(movements)
+  async function runSurvivalTasks() {
+    const mcData = require('minecraft-data')(bot.version)
+    const movements = new Movements(bot, mcData)
+    movements.allowSprinting = true
+    movements.allowParkour = true
+    movements.allow1by1towers = true
+    movements.canDig = true
+    // Make jumping more expensive than mining
+    movements.jumpCost = 10; // Default is 1
+    movements.digCost = 1;   // Default is 1
+    bot.pathfinder.setMovements(movements)
 
-  const hasItem = (name, count = 1) => {
-    const item = bot.inventory.findInventoryItem(bot.registry.itemsByName[name]?.id);
-    return item && item.count >= count;
-  };
+    const hasItem = (name, count = 1) => {
+      const item = bot.inventory.findInventoryItem(bot.registry.itemsByName[name]?.id);
+      return item && item.count >= count;
+    };
 
-  const hasAnyLog = (count = 1) => {
-    const woodTypes = ['oak_log', 'birch_log', 'spruce_log', 'jungle_log', 'acacia_log', 'dark_oak_log'];
-    let totalLogs = 0;
-    for (const type of woodTypes) {
-      totalLogs += bot.inventory.count(bot.registry.itemsByName[type].id);
+    const hasAnyLog = (count = 1) => {
+      const woodTypes = ['oak_log', 'birch_log', 'spruce_log', 'jungle_log', 'acacia_log', 'dark_oak_log'];
+      let totalLogs = 0;
+      for (const type of woodTypes) {
+        totalLogs += bot.inventory.count(bot.registry.itemsByName[type].id);
+      }
+      return totalLogs >= count;
     }
-    return totalLogs >= count;
-  }
 
-  const hasCookedFood = (count = 5) => {
-    const cookedFoods = ['cooked_beef', 'cooked_porkchop', 'cooked_chicken', 'cooked_mutton', 'cooked_rabbit', 'cooked_cod', 'cooked_salmon'];
-    let totalCooked = 0;
-    for (const food of cookedFoods) {
-        const item = bot.inventory.findInventoryItem(bot.registry.itemsByName[food]?.id);
-        if (item) {
-            totalCooked += item.count;
-        }
+    const hasCookedFood = (count = 5) => {
+      const cookedFoods = ['cooked_beef', 'cooked_porkchop', 'cooked_chicken', 'cooked_mutton', 'cooked_rabbit', 'cooked_cod', 'cooked_salmon'];
+      let totalCooked = 0;
+      for (const food of cookedFoods) {
+          const item = bot.inventory.findInventoryItem(bot.registry.itemsByName[food]?.id);
+          if (item) {
+              totalCooked += item.count;
+          }
+      }
+      return totalCooked >= count;
     }
-    return totalCooked >= count;
-  }
 
-  if (!hasAnyLog(5)) {
-    await gatherWood(bot);
-  } else {
-    bot.chat("I already have enough wood.");
-  }
+    if (!hasAnyLog(5)) {
+      await gatherWood(bot);
+    } else {
+      bot.chat("I already have enough wood.");
+    }
 
-  if (!hasItem('crafting_table')) {
-    await craftPlanksAndTable(bot);
-  } else {
-    bot.chat("I already have a crafting table.");
-  }
+    if (!hasItem('crafting_table')) {
+      await craftPlanksAndTable(bot);
+    } else {
+      bot.chat("I already have a crafting table.");
+    }
 
-  if (!hasItem('wooden_pickaxe')) {
-    await craftWoodenTools(bot);
-  } else {
-    bot.chat("I already have wooden tools.");
-  }
+    if (!hasItem('wooden_pickaxe')) {
+      await craftWoodenTools(bot);
+    } else {
+      bot.chat("I already have wooden tools.");
+    }
 
-  if (!hasItem('cobblestone', 17)) {
-    await mineStone(bot);
-  } else {
-    bot.chat("I already have enough cobblestone.");
-  }
+    if (!hasItem('cobblestone', 17)) {
+      await mineStone(bot);
+    } else {
+      bot.chat("I already have enough cobblestone.");
+    }
 
-  if (!hasItem('stone_pickaxe') || !hasItem('furnace')) {
-    await craftStoneToolsAndFurnace(bot);
-  } else {
-    bot.chat("I already have stone tools and a furnace.");
-  }
+    if (!hasItem('stone_pickaxe') || !hasItem('furnace')) {
+      await craftStoneToolsAndFurnace(bot);
+    } else {
+      bot.chat("I already have stone tools and a furnace.");
+    }
 
-  if (!hasCookedFood(5)) {
-    await gatherFood(bot);
-  } else {
-    bot.chat("I already have enough cooked food.");
-  }
+    if (!hasCookedFood(5)) {
+      await gatherFood(bot);
+    } else {
+      bot.chat("I already have enough cooked food.");
+    }
 
-  if (!hasItem('iron_ore', 26) || !hasItem('coal', 4)) {
-    await mineResources(bot);
-  } else {
-    bot.chat("I already have enough iron and coal.");
-  }
+    if (!hasItem('iron_ore', 26) || !hasItem('coal', 4)) {
+      await mineResources(bot);
+    } else {
+      bot.chat("I already have enough iron and coal.");
+    }
 
-  if (!hasItem('iron_helmet') || !hasItem('iron_chestplate') || !hasItem('iron_leggings') || !hasItem('iron_boots') || !hasItem('iron_sword')) {
-    await makeIronGear(bot);
-  } else {
-    bot.chat("I already have full iron gear.");
-  }
+    if (!hasItem('iron_helmet') || !hasItem('iron_chestplate') || !hasItem('iron_leggings') || !hasItem('iron_boots') || !hasItem('iron_sword')) {
+      await makeIronGear(bot);
+    } else {
+      bot.chat("I already have full iron gear.");
+    }
 
-  console.log('All tasks completed!')
+    console.log('All tasks completed!')
+  }
 })
 
 bot.on('error', err => console.log(err))

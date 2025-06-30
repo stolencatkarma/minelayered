@@ -1,13 +1,15 @@
 // This module will handle schematic loading and building for the bot's home base.
 // It assumes schematic files are in a 'schematics/' folder and named by type (e.g. 'house.schem').
 const path = require('path');
-const prismarineSchematic = require('prismarine-schematic');
+const { Schematic } = require('prismarine-schematic');
+const fs = require('fs').promises;
 const mcData = require('minecraft-data')('1.21');
 
 // Returns a list of unique block types needed for a schematic
 async function getNeededBlockTypes(schematicName) {
   const schematicPath = path.join(__dirname, 'schematics', schematicName + '.schem');
-  const schematic = await prismarineSchematic.read(schematicPath, '1.21');
+  const buffer = await fs.readFile(schematicPath);
+  const schematic = await Schematic.read(buffer, '1.21');
   const blockTypes = new Set();
   for (let y = 0; y < schematic.size.y; y++) {
     for (let z = 0; z < schematic.size.z; z++) {
@@ -25,7 +27,8 @@ async function getNeededBlockTypes(schematicName) {
 async function buildSchematic(bot, schematicName, chunkX, chunkZ) {
   const schematicPath = path.join(__dirname, 'schematics', schematicName + '.schem');
   bot.chat(`Loading schematic: ${schematicName}`);
-  const schematic = await prismarineSchematic.read(schematicPath, bot.version);
+  const buffer = await fs.readFile(schematicPath);
+  const schematic = await Schematic.read(buffer, bot.version);
 
   // Calculate world position for chunk origin
   const origin = {
@@ -118,10 +121,19 @@ async function fetchMaterialsFromBarrels(bot, chunkX, chunkZ, neededBlockTypes) 
 // Returns a map of blockType -> count needed, subtracting already-placed blocks
 async function getNeededBlockCounts(bot, schematicName, chunkX, chunkZ) {
   const path = require('path');
-  const prismarineSchematic = require('prismarine-schematic');
   const mcData = require('minecraft-data')(bot.version);
   const schematicPath = path.join(__dirname, 'schematics', schematicName + '.schem');
-  const schematic = await prismarineSchematic.read(schematicPath, bot.version);
+  let schematic;
+  try {
+    const buffer = await fs.readFile(schematicPath);
+    schematic = await Schematic.read(buffer, bot.version);
+  } catch (err) {
+    bot.chat(`Error loading schematic: ${schematicName} at ${schematicPath}`);
+    bot.chat(`Schematic.read type: ${typeof Schematic.read}`);
+    bot.chat(`Error: ${err && err.message}`);
+    console.error('Schematic:', Schematic);
+    throw err;
+  }
   const needed = {};
   const origin = { x: chunkX * 16, y: bot.entity.position.y, z: chunkZ * 16 };
   for (let y = 0; y < schematic.size.y; y++) {
