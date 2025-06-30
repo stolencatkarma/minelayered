@@ -1,4 +1,5 @@
-const { Movements, goals: { GoalBlock } } = require('mineflayer-pathfinder')
+const { Movements, goals: { GoalBlock } } = require('mineflayer-pathfinder');
+const mineStaircase = require('./mineStaircase');
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 module.exports = async function mineStone(bot) {
@@ -10,8 +11,9 @@ module.exports = async function mineStone(bot) {
     })
 
     if (!stone) {
-      bot.chat('No stone found nearby.')
-      return
+      bot.chat('No stone found nearby. Mining a staircase down.');
+      await mineStaircase(bot, 5);
+      continue; // Retry finding stone after digging down
     }
 
     const mcData = require('minecraft-data')(bot.version)

@@ -9,7 +9,6 @@ const craftStoneToolsAndFurnace = require('./craftStoneToolsAndFurnace')
 const gatherFood = require('./gatherFood')
 const mineResources = require('./mineResources')
 const makeIronGear = require('./makeIronGear')
-const pillar = require('./pillar')
 
 const bot = mineflayer.createBot({
   host: 'localhost',

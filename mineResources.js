@@ -1,4 +1,5 @@
 const { Movements, goals: { GoalBlock } } = require('mineflayer-pathfinder');
+const mineStaircase = require('./mineStaircase');
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -18,8 +19,9 @@ async function mineOre(bot, oreName, count) {
     });
 
     if (!oreVein) {
-      bot.chat(`No more ${oreName} found nearby.`);
-      return;
+      bot.chat(`No more ${oreName} found nearby. Mining a staircase down.`);
+      await mineStaircase(bot, 5);
+      continue; // Retry finding ore after digging down
     }
 
     const goal = new GoalBlock(oreVein.position.x, oreVein.position.y, oreVein.position.z);

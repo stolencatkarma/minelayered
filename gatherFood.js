@@ -50,15 +50,32 @@ module.exports = async function gatherFood(bot) {
         await bot.equip(sword, 'hand');
       }
 
+      const originalAllowParkour = bot.pathfinder.movements.allowParkour;
+      bot.pathfinder.movements.allowParkour = false;
+
       try {
-        await bot.lookAt(animal.position);
-        await delay(500);
-        await bot.pathfinder.goto(new GoalNear(animal.position.x, animal.position.y, animal.position.z, 1));
-        await bot.attack(animal);
-      } catch (e) {
-        bot.chat(`Error killing animal: ${e.message}`);
+        while (animal.isValid) {
+          const goal = new GoalNear(animal.position.x, animal.position.y, animal.position.z, 1);
+          bot.pathfinder.setGoal(goal);
+          await bot.lookAt(animal.position);
+
+          if (bot.entity.position.distanceTo(animal.position) < 3) {
+            const sword = bot.inventory.items().find((item) => item.name.includes('sword'));
+            if (sword && bot.heldItem?.name !== sword.name) {
+              await bot.equip(sword, 'hand');
+            }
+            await bot.attack(animal);
+          }
+          await delay(200);
+        }
+      } finally {
+        bot.pathfinder.movements.allowParkour = originalAllowParkour;
       }
-      await bot.waitForTicks(20); // Wait for drops
+
+      bot.pathfinder.stop();
+
+      bot.chat(`Killed the ${animal.name}.`);
+      await bot.waitForTicks(40); // Wait for drops
     }
   }
 
