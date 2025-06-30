@@ -9,6 +9,7 @@ const craftStoneToolsAndFurnace = require('./craftStoneToolsAndFurnace')
 const gatherFood = require('./gatherFood')
 const mineResources = require('./mineResources')
 const makeIronGear = require('./makeIronGear')
+const homeDb = require('./homeDb');
 
 const bot = mineflayer.createBot({
   host: 'localhost',
@@ -26,6 +27,93 @@ bot.on('chat', (username, message) => {
 bot.on('spawn', async () => {
   console.log('Bot has spawned!')
   await bot.waitForChunksToLoad()
+  homeDb.initDb();
+
+  // Home base schematic assignments
+  const SCHEMATICS = [
+    { name: 'house', dx: 0, dz: 0 },
+    { name: 'farm', dx: 1, dz: 0 },
+    { name: 'pens', dx: 0, dz: 1 },
+    { name: 'fishing', dx: -1, dz: 0 },
+    { name: 'mine', dx: 0, dz: -1 },
+  ];
+
+  // Get bot's unique id (username for now)
+  const botId = bot.username;
+  const world = 'overworld';
+
+  // Helper to get chunk coords from pos
+  function getChunkCoords(pos) {
+    return { x: Math.floor(pos.x / 16), z: Math.floor(pos.z / 16) };
+  }
+
+  // Check if home is already in DB
+  homeDb.getHomeChunks(botId, world, async (err, rows) => {
+    if (err) {
+      console.error('DB error:', err);
+      return;
+    }
+    if (!rows || rows.length < 5) {
+      // Claim new home base
+      const center = getChunkCoords(bot.entity.position);
+      bot.chat(`Claiming home base at chunk ${center.x},${center.z}`);
+      for (const s of SCHEMATICS) {
+        const chunkX = center.x + s.dx;
+        const chunkZ = center.z + s.dz;
+        homeDb.saveHomeChunk(botId, s.name, chunkX, chunkZ, world);
+        bot.chat(`Assigned ${s.name} to chunk ${chunkX},${chunkZ}`);
+      }
+    } else {
+      bot.chat('Home base already claimed. Loaded from database:');
+      for (const row of rows) {
+        bot.chat(`${row.schematic} at chunk ${row.chunk_x},${row.chunk_z}`);
+      }
+    }
+
+    // After home base claim/load, build all schematics (stub: just logs for now)
+    const buildSchematic = require('./buildSchematic');
+    const ensureBarrels = require('./ensureBarrels');
+    for (const row of rows) {
+      // Move to the center of the chunk before building
+      const targetX = row.chunk_x * 16 + 8;
+      const targetZ = row.chunk_z * 16 + 8;
+      const targetY = bot.entity.position.y;
+      const { GoalNear } = require('mineflayer-pathfinder').goals;
+      await bot.pathfinder.goto(new GoalNear(targetX, targetY, targetZ, 2));
+      bot.chat(`Arrived at ${row.schematic} chunk (${row.chunk_x},${row.chunk_z}), starting build.`);
+      // Dynamically determine needed block types and counts for schematic
+      const neededBlockCounts = await buildSchematic.getNeededBlockCounts(bot, row.schematic, row.chunk_x, row.chunk_z);
+      const neededBlockTypes = Object.keys(neededBlockCounts);
+      await ensureBarrels(bot, row.chunk_x, row.chunk_z, neededBlockTypes);
+      // Fill barrels with needed blocks from inventory (only what is still needed)
+      for (const blockType of neededBlockTypes) {
+        const needed = neededBlockCounts[blockType];
+        if (needed <= 0) continue;
+        const item = bot.inventory.findInventoryItem(bot.registry.itemsByName[blockType]?.id);
+        if (item) {
+          const toDeposit = Math.min(item.count, needed);
+          for (const dx of [0, 15]) {
+            const barrelPos = bot.vec3(row.chunk_x * 16 + dx, bot.entity.position.y, row.chunk_z * 16);
+            const barrelBlock = bot.blockAt(barrelPos);
+            if (barrelBlock && barrelBlock.name === 'barrel') {
+              try {
+                const container = await bot.openContainer(barrelBlock);
+                await container.deposit(item.type, null, toDeposit);
+                await container.close();
+                bot.chat(`Deposited ${toDeposit} ${blockType} in barrel at ${barrelPos.x},${barrelPos.y},${barrelPos.z}`);
+                break;
+              } catch (err) {
+                bot.chat(`Error depositing to barrel at ${barrelPos.x},${barrelPos.y},${barrelPos.z}: ${err.message}`);
+              }
+            }
+          }
+        }
+      }
+      // Fetch materials from barrels before building
+      await buildSchematic.fetchMaterialsFromBarrels(bot, row.chunk_x, row.chunk_z, neededBlockTypes);
+      await buildSchematic(bot, row.schematic, row.chunk_x, row.chunk_z);
+    }
+  });
 
   const mcData = require('minecraft-data')(bot.version)
   const movements = new Movements(bot, mcData)
