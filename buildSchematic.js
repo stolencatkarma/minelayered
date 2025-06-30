@@ -4,6 +4,7 @@ const path = require('path');
 const { Schematic } = require('prismarine-schematic');
 const fs = require('fs').promises;
 const mcData = require('minecraft-data')('1.21');
+const { Vec3 } = require('vec3');
 
 // Returns a list of unique block types needed for a schematic
 async function getNeededBlockTypes(schematicName) {
@@ -14,7 +15,7 @@ async function getNeededBlockTypes(schematicName) {
   for (let y = 0; y < schematic.size.y; y++) {
     for (let z = 0; z < schematic.size.z; z++) {
       for (let x = 0; x < schematic.size.x; x++) {
-        const stateId = schematic.getBlockStateId({x, y, z});
+        const stateId = schematic.getBlockStateId(new Vec3(x, y, z));
         if (stateId === 0) continue; // Air
         const block = mcData.blocksByStateId[stateId];
         if (block) blockTypes.add(block.name);
@@ -43,7 +44,7 @@ async function buildSchematic(bot, schematicName, chunkX, chunkZ) {
   for (let y = 0; y < schematic.size.y; y++) {
     for (let z = 0; z < schematic.size.z; z++) {
       for (let x = 0; x < schematic.size.x; x++) {
-        const stateId = schematic.getBlockStateId({x, y, z});
+        const stateId = schematic.getBlockStateId(new Vec3(x, y, z));
         if (stateId === 0) continue; // Air
         const block = mcData.blocksByStateId[stateId];
         if (!block) continue;
@@ -139,7 +140,7 @@ async function getNeededBlockCounts(bot, schematicName, chunkX, chunkZ) {
   for (let y = 0; y < schematic.size.y; y++) {
     for (let z = 0; z < schematic.size.z; z++) {
       for (let x = 0; x < schematic.size.x; x++) {
-        const stateId = schematic.getBlockStateId({x, y, z});
+        const stateId = schematic.getBlockStateId(new Vec3(x, y, z));
         if (stateId === 0) continue; // Air
         const block = mcData.blocksByStateId[stateId];
         if (!block) continue;
