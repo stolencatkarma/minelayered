@@ -17,15 +17,13 @@ async function pillar(bot) {
   await bot.equip(blockInInventory, 'hand');
   bot.setControlState('jump', true);
 
-  const interval = setInterval(async () => {
+  const interval = setInterval(() => {
     if (bot.entity.onGround) {
-        try {
-            await bot.placeBlock(pillarBlock, vec3(0, 1, 0));
-        } catch (err) {
+        bot.placeBlock(pillarBlock, vec3(0, 1, 0)).catch(err => {
             // ignore
-        }
+        });
     }
-  }, 50);
+  }, 10);
 
   setTimeout(() => {
     clearInterval(interval);
