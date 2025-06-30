@@ -3,13 +3,10 @@ const mineStaircase = require('./mineStaircase');
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function mineOre(bot, oreName, count) {
-  let oreCollected = bot.inventory.count(bot.registry.itemsByName[oreName].id);
-  if (bot.registry.itemsByName[`deepslate_${oreName}`]) {
-    oreCollected += bot.inventory.count(bot.registry.itemsByName[`deepslate_${oreName}`].id);
-  }
+async function mineOre(bot, oreName, rawMaterialName, count) {
+  let oreCollected = bot.inventory.count(bot.registry.itemsByName[rawMaterialName].id);
 
-  bot.chat(`I have ${oreCollected} ${oreName}. Need ${count}.`);
+  bot.chat(`I have ${oreCollected} ${rawMaterialName}. Need ${count}.`);
 
   while (oreCollected < count) {
     const oreVein = bot.findBlock({
@@ -38,8 +35,8 @@ async function mineOre(bot, oreName, count) {
         await bot.lookAt(oreVein.position);
         await delay(500);
         await bot.dig(oreVein);
-        oreCollected++;
-        bot.chat(`Mined ${oreCollected}/${count} ${oreName}.`);
+        oreCollected = bot.inventory.count(bot.registry.itemsByName[rawMaterialName].id);
+        bot.chat(`Mined ${oreName}. Total ${rawMaterialName}: ${oreCollected}/${count}.`);
     } catch (err) {
         console.log(err);
     }
@@ -52,10 +49,10 @@ module.exports = async function mineResources(bot) {
   bot.chat('Starting to mine for resources...');
 
   // Mine Iron Ore
-  await mineOre(bot, 'iron_ore', 26);
+  await mineOre(bot, 'iron_ore', 'raw_iron', 26);
 
   // Mine Coal Ore
-  await mineOre(bot, 'coal_ore', 4);
+  await mineOre(bot, 'coal_ore', 'coal', 4);
 
   bot.chat('Finished mining all resources.');
 };
