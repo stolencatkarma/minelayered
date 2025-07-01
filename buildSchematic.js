@@ -51,7 +51,7 @@ async function buildSchematic(bot, schematicName, chunkX, chunkZ) {
         const worldX = origin.x + x;
         const worldY = origin.y + y;
         const worldZ = origin.z + z;
-        const pos = bot.vec3(worldX, worldY, worldZ);
+        const pos = new Vec3(worldX, worldY, worldZ);
         const blockAt = bot.blockAt(pos);
         if (!blockAt || blockAt.name !== block.name) {
           missingBlocks.push({ pos, block });
@@ -93,7 +93,7 @@ async function fetchMaterialsFromBarrels(bot, chunkX, chunkZ, neededBlockTypes) 
   for (const blockType of neededBlockTypes) {
     let found = false;
     for (const pos of barrelPositions) {
-      const barrelPos = bot.vec3(pos.x, bot.entity.position.y, pos.z);
+      const barrelPos = new Vec3(pos.x, bot.entity.position.y, pos.z);
       const barrelBlock = bot.blockAt(barrelPos);
       if (barrelBlock && barrelBlock.name === 'barrel') {
         try {
@@ -147,7 +147,7 @@ async function getNeededBlockCounts(bot, schematicName, chunkX, chunkZ) {
         const worldX = origin.x + x;
         const worldY = origin.y + y;
         const worldZ = origin.z + z;
-        const worldBlock = bot.blockAt(bot.vec3(worldX, worldY, worldZ));
+        const worldBlock = bot.blockAt(new Vec3(worldX, worldY, worldZ));
         if (!worldBlock || worldBlock.name !== block.name) {
           needed[block.name] = (needed[block.name] || 0) + 1;
         }

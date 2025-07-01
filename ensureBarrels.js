@@ -1,5 +1,7 @@
 // Utility for managing build barrels at chunk corners
 const mcData = require('minecraft-data')('1.21');
+const { Vec3 } = require('vec3');
+const craftBarrel = require('./craftBarrel');
 
 async function ensureBarrels(bot, chunkX, chunkZ, neededBlockTypes) {
   // Place barrels at NW and NE corners of the chunk
@@ -9,10 +11,16 @@ async function ensureBarrels(bot, chunkX, chunkZ, neededBlockTypes) {
   ];
   let barrelsPlaced = 0;
   for (const corner of corners) {
-    const pos = bot.vec3(corner.x, bot.entity.position.y, corner.z);
+    const pos = new Vec3(corner.x, bot.entity.position.y, corner.z);
     const block = bot.blockAt(pos);
     if (!block || block.name !== 'barrel') {
-      const barrelItem = bot.inventory.findInventoryItem(mcData.itemsByName['barrel'].id);
+      let barrelItem = bot.inventory.findInventoryItem(mcData.itemsByName['barrel'].id);
+      if (!barrelItem) {
+        bot.chat('No barrel in inventory, attempting to craft one.');
+        await craftBarrel(bot);
+        barrelItem = bot.inventory.findInventoryItem(mcData.itemsByName['barrel'].id);
+      }
+
       if (barrelItem) {
         await bot.equip(barrelItem, 'hand');
         await bot.pathfinder.goto(new bot.pathfinder.goals.GoalNear(pos.x, pos.y, pos.z, 1));

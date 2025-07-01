@@ -2,24 +2,36 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const DB_PATH = path.join(__dirname, 'bot_home.db');
+let db;
 
 function getDb() {
-  return new sqlite3.Database(DB_PATH);
+  if (!db || !db.open) {
+    db = new sqlite3.Database(DB_PATH, (err) => {
+      if (err) {
+        console.error('Error opening database:', err.message);
+      } else {
+        console.log('Database opened successfully.');
+      }
+    });
+  }
+  return db;
 }
 
-function initDb() {
+function initDb(callback) {
   const db = getDb();
-  db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS home_chunks (
+  db.run(
+    `CREATE TABLE IF NOT EXISTS home_chunks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       bot_id TEXT,
       schematic TEXT,
       chunk_x INTEGER,
       chunk_z INTEGER,
       world TEXT
-    )`);
-  });
-  db.close();
+    )`,
+    (err) => {
+      if (callback) callback(err);
+    }
+  );
 }
 
 function saveHomeChunk(botId, schematic, chunkX, chunkZ, world = 'overworld') {
@@ -31,16 +43,14 @@ function saveHomeChunk(botId, schematic, chunkX, chunkZ, world = 'overworld') {
       if (err) console.error('DB insert error:', err);
     }
   );
-  db.close();
 }
 
 function getHomeChunks(botId, world = 'overworld', cb) {
   const db = getDb();
   db.all(
-    `SELECT schematic, chunk_x, chunk_z FROM home_chunks WHERE bot_id = ? AND world = ?`,
+    `SELECT DISTINCT schematic, chunk_x, chunk_z FROM home_chunks WHERE bot_id = ? AND world = ?`,
     [botId, world],
     (err, rows) => {
-      db.close();
       cb(err, rows);
     }
   );
